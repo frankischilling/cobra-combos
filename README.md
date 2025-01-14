@@ -2,7 +2,7 @@
 
 Welcome to the **King Cobra JFS Recipes Archive**, a PHP-based web application designed to store and display **drink combos** and **food recipes** inspired by King Cobra JFS. This application uses MySQL to manage recipe data, including ingredients and step-by-step directions.
 
-[screenshot](/screenshots/screenshot.png/)
+![screenshot](/screenshots/screenshot.png/)
 
 ## Features
 
