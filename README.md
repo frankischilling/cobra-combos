@@ -42,8 +42,8 @@ Welcome to the **King Cobra JFS Recipes Archive**, a PHP-based web application d
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/king-cobra-jfs-recipes.git
-cd king-cobra-jfs-recipes
+git clone https://github.com/your-username/king-cobra-jfs-recipes.git](https://github.com/frankischilling/cobra-combo
+cd cobra-combo
 ```
 
 ### 2. Set Up the MySQL Database
