@@ -51,6 +51,7 @@ Follow these steps to configure the MySQL database:
        name VARCHAR(255) NOT NULL,
        description TEXT,
        comments TEXT, -- Field for custom comments
+       custom_css TEXT, -- Field for custom CSS
        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
    );
    
@@ -60,6 +61,7 @@ Follow these steps to configure the MySQL database:
        name VARCHAR(255) NOT NULL,
        description TEXT,
        comments TEXT, -- Field for custom comments
+       custom_css TEXT, -- Field for custom CSS
        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
    );
 
