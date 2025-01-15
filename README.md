@@ -113,7 +113,7 @@ Follow these steps to configure the MySQL database:
    );
    ```
 
-### 3. Configure the Application
+### 3. Configuration
 
 Edit the `config.php` file with your MySQL credentials:
 
