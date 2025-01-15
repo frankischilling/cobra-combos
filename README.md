@@ -45,19 +45,21 @@ Follow these steps to configure the MySQL database:
    Run the following SQL commands to set up the required tables:
 
    ```sql
-   -- Create the drink_combos table
+   -- Create the drink_combos table with comments
    CREATE TABLE drink_combos (
        id INT AUTO_INCREMENT PRIMARY KEY,
        name VARCHAR(255) NOT NULL,
        description TEXT,
+       comments TEXT, -- Field for custom comments
        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
    );
-
-   -- Create the food_recipes table
+   
+   -- Create the food_recipes table with comments
    CREATE TABLE food_recipes (
        id INT AUTO_INCREMENT PRIMARY KEY,
        name VARCHAR(255) NOT NULL,
        description TEXT,
+       comments TEXT, -- Field for custom comments
        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
    );
 
