@@ -10,14 +10,50 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // Function to anonymize IPs
+/**
+ * Anonymize IP addresses by only revealing the last 2 octets (IPv4)
+ * or the last 2 hextets (IPv6).
+ *
+ * Examples:
+ *   IPv4: 192.168.1.25  → xxx.xxx.1.25
+ *   IPv4: 10.0.45.198   → xxx.xxx.45.198
+ *   IPv6: 2001:db8::42:8329 → xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:42:8329
+ */
 function anonymizeIp($ip) {
+    // 1) If empty or invalid, return 'Unknown IP'
+    if (empty($ip) || !filter_var($ip, FILTER_VALIDATE_IP)) {
+        return 'Unknown IP';
+    }
+
+    // 2) Handle IPv4
     if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-        $parts = explode('.', $ip);
-        return 'xxx.xxx.xxx.' . end($parts);
+        $parts = explode('.', $ip);  // e.g. [192, 168, 1, 25]
+        // Keep only the last 2 octets
+        // e.g., 192.168.1.25 => xxx.xxx.1.25
+        return 'xxx.xxx.' . $parts[2] . '.' . $parts[3];
     }
+
+    // 3) Handle IPv6
+    // Use inet_pton -> inet_ntop to ensure the address is expanded/uncompressed.
     if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-        return 'xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:' . substr($ip, -4);
+        $packed = @inet_pton($ip);       // Convert to 128-bit binary form
+        if ($packed === false) {
+            // Fall back if something unexpected
+            return 'Unknown IP';
+        }
+        $expanded = inet_ntop($packed);  // Convert back => uncompressed form
+        // e.g. "2001:0db8:0000:0000:0000:ff00:0042:8329"
+
+        $hextets = explode(':', $expanded); // 8 parts
+        // Keep the last 2, anonymize the first 6
+        // e.g. => xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:0042:8329
+        for ($i = 0; $i < 6; $i++) {
+            $hextets[$i] = 'xxxx';
+        }
+        return implode(':', $hextets);
     }
+
+    // 4) Fallback if neither recognized nor empty
     return 'Unknown IP';
 }
 

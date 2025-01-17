@@ -2,67 +2,114 @@
 require 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $recipe_type = $_POST['recipe_type'];
-    $name = $_POST['name'];
-    $description = $_POST['description'];
-    $comments = $_POST['comments']; // Existing comments field
-    $custom_css = $_POST['custom_css']; // New field for custom CSS
-    $ingredients = $_POST['ingredients']; // Array of ingredients
-    $directions = array_filter($_POST['directions'], fn($step) => !empty(trim($step))); // Filter empty directions
+    // We sanitize or validate *before* using the inputs
+    $recipe_type = filter_input(INPUT_POST, 'recipe_type', FILTER_SANITIZE_STRING);
+    $name        = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING);
+    $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+    $comments    = filter_input(INPUT_POST, 'comments', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
-    // Function to sanitize CSS input
+    // For custom CSS, we run the existing sanitize_css function
+    $custom_css = $_POST['custom_css'] ?? '';
+    $ingredients = $_POST['ingredients'] ?? []; // array
+    $directions  = $_POST['directions']  ?? []; // array
+
+    // 1) Additional CSS sanitization
     function sanitize_css($css) {
-        // Remove any `<style>` tags
+        // Remove <style> tags
         $css = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $css);
-
-        // Remove any expressions or URL functions that can be exploited
+        // Remove expression(), url(), @import() calls
         $css = preg_replace('/expression\s*\(|url\s*\(|@import\s+url\s*\(/i', '', $css);
-
-        // Remove JavaScript events (e.g., onload, onclick)
+        // Remove javascript: protocols
         $css = preg_replace('/javascript:/i', '', $css);
-
-        // Optionally, implement more sophisticated sanitization or use a library
         return $css;
     }
-
-    // Sanitize the custom CSS input
     $sanitized_css = sanitize_css($custom_css);
 
+    // 2) Directions: remove empty steps
+    $directions = array_filter($directions, fn($step) => !empty(trim($step)));
+
     try {
-        // Insert recipe with comments and custom CSS
+        // 3) Insert recipe with prepared statements
         if ($recipe_type === 'drink') {
-            $stmt = $conn->prepare("INSERT INTO drink_combos (name, description, comments, custom_css) VALUES (?, ?, ?, ?)");
+            $stmt = $conn->prepare("
+                INSERT INTO drink_combos (name, description, comments, custom_css) 
+                VALUES (:name, :description, :comments, :css)
+            ");
         } else {
-            $stmt = $conn->prepare("INSERT INTO food_recipes (name, description, comments, custom_css) VALUES (?, ?, ?, ?)");
+            $stmt = $conn->prepare("
+                INSERT INTO food_recipes (name, description, comments, custom_css) 
+                VALUES (:name, :description, :comments, :css)
+            ");
         }
-        $stmt->execute([$name, $description, $comments, $sanitized_css]);
+
+        // Bind parameters and execute
+        $stmt->bindParam(':name', $name);
+        $stmt->bindParam(':description', $description);
+        $stmt->bindParam(':comments', $comments);
+        $stmt->bindParam(':css', $sanitized_css);
+        $stmt->execute();
+
         $recipe_id = $conn->lastInsertId();
 
-        // Insert ingredients
+        // 4) Insert ingredients
         foreach ($ingredients as $ingredient) {
-            if (!empty(trim($ingredient['name'])) && !empty(trim($ingredient['quantity']))) {
+            // a) Basic sanitization
+            $ingName     = filter_var($ingredient['name']     ?? '', FILTER_SANITIZE_STRING);
+            $ingQuantity = filter_var($ingredient['quantity'] ?? '', FILTER_SANITIZE_STRING);
+            $ingUnit     = filter_var($ingredient['unit']     ?? '', FILTER_SANITIZE_STRING);
+
+            // b) Only insert if not empty
+            if (!empty(trim($ingName)) && !empty(trim($ingQuantity))) {
                 if ($recipe_type === 'drink') {
-                    $stmt = $conn->prepare("INSERT INTO ingredients (recipe_type, drink_id, ingredient, quantity, unit) VALUES (?, ?, ?, ?, ?)");
-                    $stmt->execute([$recipe_type, $recipe_id, $ingredient['name'], $ingredient['quantity'], $ingredient['unit']]);
+                    $stmtIng = $conn->prepare("
+                        INSERT INTO ingredients (recipe_type, drink_id, ingredient, quantity, unit) 
+                        VALUES (:rtype, :rid, :ing, :qty, :unit)
+                    ");
+                    $stmtIng->bindParam(':rtype', $recipe_type);
+                    $stmtIng->bindParam(':rid',   $recipe_id);
                 } else {
-                    $stmt = $conn->prepare("INSERT INTO ingredients (recipe_type, food_id, ingredient, quantity, unit) VALUES (?, ?, ?, ?, ?)");
-                    $stmt->execute([$recipe_type, $recipe_id, $ingredient['name'], $ingredient['quantity'], $ingredient['unit']]);
+                    $stmtIng = $conn->prepare("
+                        INSERT INTO ingredients (recipe_type, food_id, ingredient, quantity, unit) 
+                        VALUES (:rtype, :rid, :ing, :qty, :unit)
+                    ");
+                    $stmtIng->bindParam(':rtype', $recipe_type);
+                    $stmtIng->bindParam(':rid',   $recipe_id);
                 }
+                $stmtIng->bindParam(':ing',  $ingName);
+                $stmtIng->bindParam(':qty',  $ingQuantity);
+                $stmtIng->bindParam(':unit', $ingUnit);
+                $stmtIng->execute();
             }
         }
 
-        // Insert directions
+        // 5) Insert directions
         foreach ($directions as $step) {
-            if ($recipe_type === 'drink') {
-                $stmt = $conn->prepare("INSERT INTO directions (recipe_type, drink_id, step) VALUES (?, ?, ?)");
-                $stmt->execute([$recipe_type, $recipe_id, $step]);
-            } else {
-                $stmt = $conn->prepare("INSERT INTO directions (recipe_type, food_id, step) VALUES (?, ?, ?)");
-                $stmt->execute([$recipe_type, $recipe_id, $step]);
+            // a) Sanitize
+            $step = filter_var($step, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+            // b) Insert if not empty
+            if (!empty(trim($step))) {
+                if ($recipe_type === 'drink') {
+                    $stmtDir = $conn->prepare("
+                        INSERT INTO directions (recipe_type, drink_id, step) 
+                        VALUES (:rtype, :rid, :step)
+                    ");
+                    $stmtDir->bindParam(':rtype', $recipe_type);
+                    $stmtDir->bindParam(':rid',   $recipe_id);
+                } else {
+                    $stmtDir = $conn->prepare("
+                        INSERT INTO directions (recipe_type, food_id, step) 
+                        VALUES (:rtype, :rid, :step)
+                    ");
+                    $stmtDir->bindParam(':rtype', $recipe_type);
+                    $stmtDir->bindParam(':rid',   $recipe_id);
+                }
+                $stmtDir->bindParam(':step', $step);
+                $stmtDir->execute();
             }
         }
 
         echo "<p style='color: green;'>Recipe, ingredients, directions, comments, and custom CSS added successfully!</p>";
+
     } catch (PDOException $e) {
         echo "<p style='color: red;'>Error: " . htmlspecialchars($e->getMessage()) . "</p>";
     }

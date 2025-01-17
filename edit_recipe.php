@@ -12,12 +12,40 @@ error_reporting(E_ALL);
  * - IPv6: "2001:db8::abcd:1234" → "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx::1234"
  */
 function anonymizeIp($ip) {
-    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-        $parts = explode('.', $ip);
-        return 'xxx.xxx.' . $parts[2] . '.' . $parts[3];  // Keep last two octets visible
-    } elseif (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-        return 'xxxx:xxxx:xxxx:xxxx:xxxx:xxxx::' . substr($ip, -6);  // Keep last 6 chars of IPv6
+    // 1) If empty or invalid, return 'Unknown IP'
+    if (empty($ip) || !filter_var($ip, FILTER_VALIDATE_IP)) {
+        return 'Unknown IP';
     }
+
+    // 2) Handle IPv4
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        $parts = explode('.', $ip);  // e.g. [192, 168, 1, 25]
+        // Keep only the last 2 octets
+        // e.g., 192.168.1.25 => xxx.xxx.1.25
+        return 'xxx.xxx.' . $parts[2] . '.' . $parts[3];
+    }
+
+    // 3) Handle IPv6
+    // Use inet_pton -> inet_ntop to ensure the address is expanded/uncompressed.
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        $packed = @inet_pton($ip);       // Convert to 128-bit binary form
+        if ($packed === false) {
+            // Fall back if something unexpected
+            return 'Unknown IP';
+        }
+        $expanded = inet_ntop($packed);  // Convert back => uncompressed form
+        // e.g. "2001:0db8:0000:0000:0000:ff00:0042:8329"
+
+        $hextets = explode(':', $expanded); // 8 parts
+        // Keep the last 2, anonymize the first 6
+        // e.g. => xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:0042:8329
+        for ($i = 0; $i < 6; $i++) {
+            $hextets[$i] = 'xxxx';
+        }
+        return implode(':', $hextets);
+    }
+
+    // 4) Fallback if neither recognized nor empty
     return 'Unknown IP';
 }
 
