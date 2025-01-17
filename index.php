@@ -13,14 +13,22 @@ $food_recipes = $conn->query('SELECT * FROM food_recipes')->fetchAll(PDO::FETCH_
 <h1>King Cobra JFS Drink Combos</h1>
 <ul>
 <?php foreach ($drink_combos as $drink): ?>
-    <li><?= htmlspecialchars($drink['name']) ?> - <a href="view_recipe.php?type=drink&id=<?= $drink['id'] ?>">View</a></li>
+    <li>
+        <?= htmlspecialchars($drink['name']) ?>
+        - <a href="view_recipe.php?type=drink&id=<?= $drink['id'] ?>">View</a>
+        - <a href="edit_recipe.php?type=drink&id=<?= $drink['id'] ?>">Edit</a>
+    </li>
 <?php endforeach; ?>
 </ul>
 
 <h1>Food Recipes</h1>
 <ul>
 <?php foreach ($food_recipes as $food): ?>
-    <li><?= htmlspecialchars($food['name']) ?> - <a href="view_recipe.php?type=food&id=<?= $food['id'] ?>">View</a></li>
+    <li>
+        <?= htmlspecialchars($food['name']) ?>
+        - <a href="view_recipe.php?type=drink&id=<?= $food['id'] ?>">View</a>
+        - <a href="edit_recipe.php?type=drink&id=<?= $food['id'] ?>">Edit</a>
+    </li>
 <?php endforeach; ?>
 </ul>
 

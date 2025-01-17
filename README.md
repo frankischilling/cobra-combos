@@ -2,7 +2,7 @@
 
 Welcome to the **King Cobra JFS Recipes Archive**, a PHP-based web application designed to store and display **drink combos** and **food recipes** inspired by King Cobra JFS. This application utilizes MySQL to manage recipe data, including ingredients, step-by-step directions, custom comments, and personalized styling through custom CSS.
 
-![Screenshot](/screenshots/screenshot.png)
+![Screenshot](/screenshots/screenshot2.png)
 
 ## Table of Contents
 
@@ -68,49 +68,52 @@ Follow these steps to configure the MySQL database:
    Run the following SQL commands to set up the required tables:
 
    ```sql
-   -- Create the drink_combos table with comments and custom_css
-   CREATE TABLE drink_combos (
-       id INT AUTO_INCREMENT PRIMARY KEY,
-       name VARCHAR(255) NOT NULL,
-       description TEXT,
-       comments TEXT, -- Field for custom comments
-       custom_css TEXT, -- Field for custom CSS
-       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-   );
+   -- Create the drink_combos table
+    CREATE TABLE drink_combos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    comments TEXT,
+    custom_css TEXT,
+    last_edited_ip VARCHAR(45), -- Store last edited IP address (supports IPv6)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- Create the food_recipes table
+    CREATE TABLE food_recipes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    comments TEXT,
+    custom_css TEXT,
+    last_edited_ip VARCHAR(45), -- Store last edited IP address
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- Create the ingredients table
+    CREATE TABLE ingredients (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipe_type ENUM('drink', 'food') NOT NULL,
+    drink_id INT(11) DEFAULT NULL,
+    food_id INT(11) DEFAULT NULL,
+    ingredient VARCHAR(255) NOT NULL,
+    quantity VARCHAR(50),
+    unit VARCHAR(20),
+    FOREIGN KEY (drink_id) REFERENCES drink_combos(id) ON DELETE CASCADE,
+    FOREIGN KEY (food_id) REFERENCES food_recipes(id) ON DELETE CASCADE
+    );
+    
+    -- Create the directions table
+    CREATE TABLE directions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipe_type ENUM('drink', 'food') NOT NULL,
+    drink_id INT(11) DEFAULT NULL,
+    food_id INT(11) DEFAULT NULL,
+    step TEXT NOT NULL,
+    FOREIGN KEY (drink_id) REFERENCES drink_combos(id) ON DELETE CASCADE,
+    FOREIGN KEY (food_id) REFERENCES food_recipes(id) ON DELETE CASCADE
+    );
 
-   -- Create the food_recipes table with comments and custom_css
-   CREATE TABLE food_recipes (
-       id INT AUTO_INCREMENT PRIMARY KEY,
-       name VARCHAR(255) NOT NULL,
-       description TEXT,
-       comments TEXT, -- Field for custom comments
-       custom_css TEXT, -- Field for custom CSS
-       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-   );
-
-   -- Create the ingredients table
-   CREATE TABLE ingredients (
-       id INT AUTO_INCREMENT PRIMARY KEY,
-       recipe_type ENUM('drink', 'food') NOT NULL,
-       drink_id INT(11) DEFAULT NULL,
-       food_id INT(11) DEFAULT NULL,
-       ingredient VARCHAR(255) NOT NULL,
-       quantity VARCHAR(50),
-       unit VARCHAR(20),
-       FOREIGN KEY (drink_id) REFERENCES drink_combos(id) ON DELETE CASCADE,
-       FOREIGN KEY (food_id) REFERENCES food_recipes(id) ON DELETE CASCADE
-   );
-
-   -- Create the directions table
-   CREATE TABLE directions (
-       id INT AUTO_INCREMENT PRIMARY KEY,
-       recipe_type ENUM('drink', 'food') NOT NULL,
-       drink_id INT(11) DEFAULT NULL,
-       food_id INT(11) DEFAULT NULL,
-       step TEXT NOT NULL,
-       FOREIGN KEY (drink_id) REFERENCES drink_combos(id) ON DELETE CASCADE,
-       FOREIGN KEY (food_id) REFERENCES food_recipes(id) ON DELETE CASCADE
-   );
    ```
 
 ### 3. Configuration
@@ -179,14 +182,15 @@ On the homepage, recipes are categorized under **Drink Combos** and **Food Recip
 
 ## Database Schema
 
-- **`drink_combos`**: Stores drink combo details.
-  - **`id`**: Primary key.
-  - **`name`**: Name of the drink combo.
-  - **`description`**: Description of the drink combo.
-  - **`comments`**: Custom comments or additional information.
-  - **`custom_css`**: Custom CSS to style the drink combo page.
-  - **`created_at`**: Timestamp of creation.
-
+- **`drink_combos`**:
+    - **`id`**: Primary key.
+    - **`name`**: Name of the drink combo.
+    - **`description`**: Description of the drink combo.
+    - **`comments`**: Custom comments.
+    - **`custom_css`**: Custom CSS for the recipe page.
+    - **`last_edited_ip`**: The IP address of the last editor.
+    - **`created_at`**: Timestamp of recipe creation.
+  
 - **`food_recipes`**: Stores food recipe details.
   - **`id`**: Primary key.
   - **`name`**: Name of the food recipe.
@@ -194,7 +198,9 @@ On the homepage, recipes are categorized under **Drink Combos** and **Food Recip
   - **`comments`**: Custom comments or additional information.
   - **`custom_css`**: Custom CSS to style the food recipe page.
   - **`created_at`**: Timestamp of creation.
-
+  - **`last_edited_ip`**: The IP address of the last editor.
+  - **`created_at`**: Timestamp of recipe creation.
+  
 - **`ingredients`**: Stores ingredients for recipes.
   - **`id`**: Primary key.
   - **`recipe_type`**: Type of recipe (`drink` or `food`).
