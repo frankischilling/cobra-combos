@@ -100,7 +100,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $updatedDirections = $_POST['directions'] ?? [];
 
     // OPTIONAL: If you want to sanitize CSS again:
-    // $custom_css = sanitize_css($custom_css);
+    function sanitize_css($css) {
+        // Remove any `<style>` tags
+        $css = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $css);
+
+        // Remove any expressions or URL functions that can be exploited
+        $css = preg_replace('/expression\s*\(|url\s*\(|@import\s+url\s*\(/i', '', $css);
+
+        // Remove JavaScript events (e.g., onload, onclick)
+        $css = preg_replace('/javascript:/i', '', $css);
+
+        // Optionally, implement more sophisticated sanitization or use a library
+        return $css;
+    }
+
+    $custom_css = sanitize_css($custom_css);
 
     try {
         // 1) Update main recipe table
